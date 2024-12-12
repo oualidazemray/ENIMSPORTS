@@ -1,0 +1,373 @@
+"use client";
+import React, { useState, useEffect } from "react";
+import {
+  Calendar,
+  Volleyball,
+  Dribbble,
+  LandPlot,
+  CalendarCheck,
+  CalendarOff,
+  User,
+  Clock,
+} from "lucide-react";
+
+const fieldTypes = [
+  {
+    type: "Football",
+    id: 3,
+    Icon: LandPlot,
+    imgSrc: "football.avif",
+    description: "Outdoor football field with professional-grade turf",
+  },
+  {
+    type: "Basketball",
+    id: 2,
+    Icon: Dribbble,
+    imgSrc: "basketBall.webp",
+    description: "Indoor basketball court with premium flooring",
+  },
+  {
+    type: "Volleyball",
+    id: 1,
+    Icon: Volleyball,
+    imgSrc: "Volleyball.jpeg",
+    description: "Volleyball court with regulation net and markings",
+  },
+];
+
+const generate24HourTimes = () =>
+  Array.from({ length: 24 }, (_, i) => ({
+    hourState: false,
+    id: i,
+    hour: i.toString().padStart(2, "0") + ":00",
+    reservedBy: null,
+  }));
+
+function ReservationSystem() {
+  const [timeSlots, setTimeSlots] = useState(generate24HourTimes());
+  const [reservations, setReservations] = useState({
+    count: 0,
+    reservedHours: [],
+  });
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedField, setSelectedField] = useState(null);
+  const currentUser = "AZEMRAY"; // This would typically come from authentication
+
+  // Enhanced existing reservations with more details
+  const [existingReservations, setExistingReservations] = useState([
+    {
+      date: "2024-12-15",
+      field: "Football",
+      hours: [
+        {
+          hour: 10,
+          reservedBy: "OUALID",
+          email: "oualid@example.com",
+        },
+        {
+          hour: 14,
+          reservedBy: "MOHAMMED",
+          email: "mohammed@example.com",
+        },
+      ],
+    },
+    {
+      date: "2024-12-20",
+      field: "Volleyball",
+      hours: [
+        {
+          hour: 17,
+          reservedBy: "abo7afss",
+          email: "abo7afss@example.com",
+        },
+        {
+          hour: 1,
+          reservedBy: "oukhride",
+          email: "oukhride@example.com",
+        },
+      ],
+    },
+    // More existing reservations would be fetched from DB
+  ]);
+
+  const [selectedReservationDetails, setSelectedReservationDetails] =
+    useState(null);
+
+  const handleFieldSelection = (field) => {
+    setSelectedField(field);
+    setSelectedReservationDetails(null);
+  };
+
+  const handleDateChange = (e) => {
+    const selectedDateValue = e.target.value;
+    setSelectedDate(selectedDateValue);
+    setSelectedReservationDetails(null);
+
+    // Reset time slots
+    const freshTimeSlots = generate24HourTimes();
+
+    // Check for existing reservations for this date and field
+    const dayReservations = existingReservations.find(
+      (reservation) =>
+        reservation.date === selectedDateValue &&
+        reservation.field === selectedField
+    );
+
+    // Mark existing reservations
+    if (dayReservations) {
+      dayReservations.hours.forEach((reservation) => {
+        const slotIndex = freshTimeSlots.findIndex(
+          (slot) => parseInt(slot.hour) === reservation.hour
+        );
+
+        if (slotIndex !== -1) {
+          freshTimeSlots[slotIndex].hourState = true;
+          freshTimeSlots[slotIndex].reservedBy = reservation.reservedBy;
+        }
+      });
+    }
+
+    setTimeSlots(freshTimeSlots);
+    setReservations({
+      count: 0,
+      reservedHours: [],
+    });
+  };
+
+  const handleReserve = (hourId) => {
+    // Prevent reserving if already max reservations or slot is taken
+    if (
+      reservations.count >= 2 &&
+      !reservations.reservedHours.includes(hourId)
+    ) {
+      return;
+    }
+
+    setTimeSlots((prevSlots) =>
+      prevSlots.map((slot) =>
+        slot.id === hourId
+          ? {
+              ...slot,
+              hourState: !slot.hourState,
+              reservedBy: slot.hourState ? null : currentUser,
+            }
+          : slot
+      )
+    );
+
+    setReservations((prev) => {
+      const isAlreadyReserved = prev.reservedHours.includes(hourId);
+      return {
+        count: isAlreadyReserved ? prev.count - 1 : prev.count + 1,
+        reservedHours: isAlreadyReserved
+          ? prev.reservedHours.filter((id) => id !== hourId)
+          : [...prev.reservedHours, hourId],
+      };
+    });
+  };
+
+  const handleViewReservationDetails = (slot) => {
+    // Find the matching existing reservation
+    const existingReservation = existingReservations.find(
+      (reservation) =>
+        reservation.date === selectedDate && reservation.field === selectedField
+    );
+
+    if (existingReservation) {
+      const reservationDetails = existingReservation.hours.find(
+        (hour) => hour.hour === slot.id
+      );
+
+      setSelectedReservationDetails(reservationDetails);
+    }
+  };
+
+  const handleSaveReservation = () => {
+    // TODO: Implement actual save to database
+    console.log("Saving Reservation:", {
+      date: selectedDate,
+      field: selectedField,
+      reservedHours: timeSlots.filter((slot) => slot.hourState),
+    });
+
+    // Reset after save (in real app, this might happen after successful DB save)
+    setReservations({ count: 0, reservedHours: [] });
+  };
+
+  // Get the selected field image source and description
+  const selectedFieldData = fieldTypes.find(
+    (field) => field.type === selectedField
+  );
+  const imgSrc = selectedFieldData ? selectedFieldData.imgSrc : null;
+  const fieldDescription = selectedFieldData
+    ? selectedFieldData.description
+    : null;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-6">
+      <div className="space-y-5 w-full max-w-screen-xl mx-auto">
+        <header className="flex flex-col items-center justify-center space-y-2 mb-8">
+          <div className="flex items-center space-x-3 text-2xl sm:text-4xl font-bold text-green-400">
+            <Calendar className="text-green-400" />
+            <h1>Field Reservation System</h1>
+          </div>
+          <p className="text-gray-400 text-center max-w-xl">
+            Select a field, choose a date, and reserve your preferred time slots
+          </p>
+        </header>
+
+        <main className="space-y-6">
+          {/* Field Selection */}
+          <section className="flex flex-wrap justify-center gap-4">
+            {fieldTypes.map(({ id, type, Icon, description }) => (
+              <div key={id} className="group relative">
+                <button
+                  onClick={() => handleFieldSelection(type)}
+                  className={`flex items-center gap-3 px-6 py-3 rounded-lg transition-all shadow-lg ${
+                    selectedField === type
+                      ? "bg-gradient-to-r from-green-500 to-green-600 text-white"
+                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                  }`}
+                >
+                  <Icon className="text-white" />
+                  {type} Field
+                </button>
+                {selectedField !== type && (
+                  <div className="absolute z-10 hidden group-hover:block bg-black text-white text-sm p-2 rounded-md shadow-lg -bottom-14 left-1/2 transform -translate-x-1/2">
+                    {description}
+                  </div>
+                )}
+              </div>
+            ))}
+          </section>
+
+          {/* Date and Reservation Controls */}
+          {selectedField && (
+            <div className="flex flex-col md:flex-row gap-4 items-center justify-center">
+              <input
+                type="date"
+                className="w-full max-w-xs bg-gray-700 text-white p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500"
+                onChange={handleDateChange}
+              />
+              {reservations.count > 0 && (
+                <button
+                  onClick={handleSaveReservation}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-lg hover:shadow-blue-500/25"
+                >
+                  Save Reservation
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Reservation Details and Image */}
+          {selectedDate && (
+            <section className="bg-gray-800 p-6 rounded-lg grid md:grid-cols-2 gap-6">
+              {/* Time Slots */}
+              <div className="bg-gray-700 rounded-lg p-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                {timeSlots.map(({ id, hour, hourState, reservedBy }) => (
+                  <div
+                    key={id}
+                    className={`rounded-md text-center py-2 px-1 flex flex-col items-center justify-between ${
+                      hourState ? "bg-red-800" : "bg-green-800"
+                    }`}
+                  >
+                    <p className="font-bold text-white text-sm">{hour}</p>
+
+                    <button
+                      onClick={() =>
+                        hourState
+                          ? handleViewReservationDetails({ id, hour })
+                          : handleReserve(id)
+                      }
+                      className={`w-full py-1 text-xs rounded-md transition-all ${
+                        hourState
+                          ? "bg-red-600 text-white hover:bg-red-700"
+                          : "bg-green-600 text-white hover:bg-green-700"
+                      } ${
+                        reservedBy && reservedBy !== currentUser
+                          ? "cursor-not-allowed opacity-50"
+                          : ""
+                      }`}
+                      disabled={reservedBy && reservedBy !== currentUser}
+                    >
+                      {hourState ? (
+                        <div className="flex items-center justify-center gap-1">
+                          <CalendarOff size={12} />
+                          {reservedBy || "Reserved"}
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center gap-1">
+                          <CalendarCheck size={12} /> Reserve
+                        </div>
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Field Image and Details */}
+              <div>
+                {imgSrc && (
+                  <div className="space-y-4">
+                    <h2 className="text-2xl font-bold text-green-400 flex items-center gap-2">
+                      <LandPlot className="text-green-400" />
+                      {selectedField} Field
+                    </h2>
+                    <div className="rounded-lg overflow-hidden shadow-lg">
+                      <img
+                        src={`/${imgSrc}`}
+                        alt={`${selectedField} field`}
+                        className="w-full h-64 object-cover"
+                      />
+                    </div>
+                    <p className="text-gray-400 mt-2">{fieldDescription}</p>
+                  </div>
+                )}
+
+                {/* Reservation Details Modal */}
+                {selectedReservationDetails && (
+                  <div className="mt-6 bg-gray-700 rounded-lg p-4 space-y-3">
+                    <h3 className="text-xl font-bold text-green-400 flex items-center gap-2">
+                      <User className="text-green-400" />
+                      Reservation Details
+                    </h3>
+                    <div className="space-y-2 text-sm">
+                      <p className="flex items-center gap-2">
+                        <Clock size={16} />
+                        <span className="font-semibold">Time:</span>
+                        {selectedReservationDetails.hour}:00
+                      </p>
+                      <p className="flex items-center gap-2">
+                        <User size={16} />
+                        <span className="font-semibold">Reserved By:</span>
+                        {selectedReservationDetails.reservedBy}
+                      </p>
+                      <p className="flex items-center gap-2">
+                        <User size={16} />
+                        <span className="font-semibold">Email:</span>
+                        {selectedReservationDetails.email}
+                      </p>
+                      <p className="flex items-center gap-2">
+                        <User size={16} />
+                        <span className="font-semibold">Phone:</span>
+                        {selectedReservationDetails.phone}
+                      </p>
+                      <p className="flex items-center gap-2">
+                        <User size={16} />
+                        <span className="font-semibold">Department:</span>
+                        {selectedReservationDetails.department}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+export default ReservationSystem;
