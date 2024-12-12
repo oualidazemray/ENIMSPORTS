@@ -4,7 +4,6 @@ import {
   User2,
   Medal,
   Calendar,
-  ChartPie,
   MessageCircle,
   Clock,
 } from "lucide-react";
@@ -37,7 +36,6 @@ function StudentDashboard() {
       <DashboardCard
         title="Notifications"
         description="Alerts for upcoming events and announcements."
-        iconColor="text-red-500"
         icon={<Bell size={32} className="text-red-500" />}
         path="dashboard/components/student/Notifications"
       />

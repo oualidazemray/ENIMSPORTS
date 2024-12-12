@@ -1,5 +1,6 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, FC } from "react";
+import Image from "next/image";
 import {
   Calendar,
   Volleyball,
@@ -9,9 +10,48 @@ import {
   CalendarOff,
   User,
   Clock,
+  LucideIcon,
 } from "lucide-react";
 
-const fieldTypes = [
+// Refined Type Definitions
+interface FieldType {
+  type: string;
+  id: number;
+  Icon: LucideIcon;
+  imgSrc: string;
+  description: string;
+}
+
+interface TimeSlot {
+  id: number;
+  hour: string;
+  hourState: boolean;
+  reservedBy: string | null;
+}
+
+interface ReservationHour {
+  hour: number;
+  reservedBy: string;
+  email: string;
+  phone?: string;
+  department?: string;
+}
+
+interface Reservation {
+  date: string;
+  field: string;
+  hours: ReservationHour[];
+}
+
+interface ReservationsState {
+  count: number;
+  reservedHours: number[];
+}
+
+// Constants
+const CURRENT_USER = "AZEMRAY"; // Typically from authentication
+
+const fieldTypes: FieldType[] = [
   {
     type: "Football",
     id: 3,
@@ -35,26 +75,27 @@ const fieldTypes = [
   },
 ];
 
-const generate24HourTimes = () =>
+// Generate 24-hour time slots function
+const generate24HourTimes = (): TimeSlot[] =>
   Array.from({ length: 24 }, (_, i) => ({
-    hourState: false,
     id: i,
     hour: i.toString().padStart(2, "0") + ":00",
+    hourState: false,
     reservedBy: null,
   }));
 
-function ReservationSystem() {
-  const [timeSlots, setTimeSlots] = useState(generate24HourTimes());
-  const [reservations, setReservations] = useState({
+const ReservationSystem: FC = () => {
+  // State Hooks with Explicit Types
+  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>(generate24HourTimes());
+  const [reservations, setReservations] = useState<ReservationsState>({
     count: 0,
     reservedHours: [],
   });
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [selectedField, setSelectedField] = useState(null);
-  const currentUser = "AZEMRAY"; // This would typically come from authentication
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedField, setSelectedField] = useState<string | null>(null);
 
-  // Enhanced existing reservations with more details
-  const [existingReservations, setExistingReservations] = useState([
+  // Enhanced existing reservations
+  const existingReservations: Reservation[] = [
     {
       date: "2024-12-15",
       field: "Football",
@@ -87,18 +128,18 @@ function ReservationSystem() {
         },
       ],
     },
-    // More existing reservations would be fetched from DB
-  ]);
+  ];
 
   const [selectedReservationDetails, setSelectedReservationDetails] =
-    useState(null);
+    useState<ReservationHour | null>(null);
 
-  const handleFieldSelection = (field) => {
+  // Handlers with Explicit Type Annotations
+  const handleFieldSelection = (field: string): void => {
     setSelectedField(field);
     setSelectedReservationDetails(null);
   };
 
-  const handleDateChange = (e) => {
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const selectedDateValue = e.target.value;
     setSelectedDate(selectedDateValue);
     setSelectedReservationDetails(null);
@@ -134,7 +175,7 @@ function ReservationSystem() {
     });
   };
 
-  const handleReserve = (hourId) => {
+  const handleReserve = (hourId: number): void => {
     // Prevent reserving if already max reservations or slot is taken
     if (
       reservations.count >= 2 &&
@@ -149,7 +190,7 @@ function ReservationSystem() {
           ? {
               ...slot,
               hourState: !slot.hourState,
-              reservedBy: slot.hourState ? null : currentUser,
+              reservedBy: slot.hourState ? null : CURRENT_USER,
             }
           : slot
       )
@@ -166,7 +207,10 @@ function ReservationSystem() {
     });
   };
 
-  const handleViewReservationDetails = (slot) => {
+  const handleViewReservationDetails = (slot: {
+    id: number;
+    hour: string;
+  }): void => {
     // Find the matching existing reservation
     const existingReservation = existingReservations.find(
       (reservation) =>
@@ -178,11 +222,11 @@ function ReservationSystem() {
         (hour) => hour.hour === slot.id
       );
 
-      setSelectedReservationDetails(reservationDetails);
+      setSelectedReservationDetails(reservationDetails || null);
     }
   };
 
-  const handleSaveReservation = () => {
+  const handleSaveReservation = (): void => {
     // TODO: Implement actual save to database
     console.log("Saving Reservation:", {
       date: selectedDate,
@@ -245,6 +289,7 @@ function ReservationSystem() {
           {selectedField && (
             <div className="flex flex-col md:flex-row gap-4 items-center justify-center">
               <input
+                title="SaveReservation"
                 type="date"
                 className="w-full max-w-xs bg-gray-700 text-white p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500"
                 onChange={handleDateChange}
@@ -285,11 +330,11 @@ function ReservationSystem() {
                           ? "bg-red-600 text-white hover:bg-red-700"
                           : "bg-green-600 text-white hover:bg-green-700"
                       } ${
-                        reservedBy && reservedBy !== currentUser
+                        reservedBy && reservedBy !== CURRENT_USER
                           ? "cursor-not-allowed opacity-50"
                           : ""
                       }`}
-                      disabled={reservedBy && reservedBy !== currentUser}
+                      disable={reservedBy && reservedBy !== CURRENT_USER}
                     >
                       {hourState ? (
                         <div className="flex items-center justify-center gap-1">
@@ -315,12 +360,14 @@ function ReservationSystem() {
                       {selectedField} Field
                     </h2>
                     <div className="rounded-lg overflow-hidden shadow-lg">
-                      <img
-                        src={`/${imgSrc}`}
+                      <Image
+                        src={`/images/${imgSrc}`}
                         alt={`${selectedField} field`}
-                        className="w-full h-64 object-cover"
+                        width={800}
+                        height={500}
                       />
                     </div>
+
                     <p className="text-gray-400 mt-2">{fieldDescription}</p>
                   </div>
                 )}
@@ -348,16 +395,20 @@ function ReservationSystem() {
                         <span className="font-semibold">Email:</span>
                         {selectedReservationDetails.email}
                       </p>
-                      <p className="flex items-center gap-2">
-                        <User size={16} />
-                        <span className="font-semibold">Phone:</span>
-                        {selectedReservationDetails.phone}
-                      </p>
-                      <p className="flex items-center gap-2">
-                        <User size={16} />
-                        <span className="font-semibold">Department:</span>
-                        {selectedReservationDetails.department}
-                      </p>
+                      {selectedReservationDetails.phone && (
+                        <p className="flex items-center gap-2">
+                          <User size={16} />
+                          <span className="font-semibold">Phone:</span>
+                          {selectedReservationDetails.phone}
+                        </p>
+                      )}
+                      {selectedReservationDetails.department && (
+                        <p className="flex items-center gap-2">
+                          <User size={16} />
+                          <span className="font-semibold">Department:</span>
+                          {selectedReservationDetails.department}
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}
@@ -368,6 +419,5 @@ function ReservationSystem() {
       </div>
     </div>
   );
-}
-
+};
 export default ReservationSystem;

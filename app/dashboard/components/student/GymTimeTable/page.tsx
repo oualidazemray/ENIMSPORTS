@@ -1,19 +1,22 @@
 "use client";
 import React, { useState } from "react";
-import {
-  Calendar,
-  Clock,
-  CheckCircle,
-  X,
-  UserCircle2,
-  Users,
-} from "lucide-react";
+import { LucideIcon, Clock, X, UserCircle2, Users } from "lucide-react";
 
-// Define a more type-safe interface for time slots
+// Define a more comprehensive interface for time slots
 interface TimeSlot {
   day: string;
   time: string;
 }
+
+// Interface for grouped time slot with icon
+interface GroupedTimeSlot {
+  time: string;
+  icon: LucideIcon;
+  iconColor: string;
+}
+
+// Type for grouped time slots dictionary
+type GroupedTimeSlotsByDay = Record<string, GroupedTimeSlot[]>;
 
 const girlsTimeSlots: TimeSlot[] = [
   { day: "Monday", time: "6:00 AM - 7:00 AM" },
@@ -50,7 +53,7 @@ const boysTimeSlots: TimeSlot[] = [
 ];
 
 // Group time slots by day for easier rendering
-const groupTimeSlotsByDay = (timeSlots: TimeSlot[]) => {
+const groupTimeSlotsByDay = (timeSlots: TimeSlot[]): GroupedTimeSlotsByDay => {
   return timeSlots.reduce((acc, slot) => {
     if (!acc[slot.day]) {
       acc[slot.day] = [];
@@ -61,13 +64,16 @@ const groupTimeSlotsByDay = (timeSlots: TimeSlot[]) => {
       iconColor: "text-blue-400",
     });
     return acc;
-  }, {} as Record<string, Array<{ time: string; icon: any; iconColor: string }>>);
+  }, {} as GroupedTimeSlotsByDay);
 };
 
-const TimeTableGrid: React.FC<{
+// Props interface for TimeTableGrid component
+interface TimeTableGridProps {
   timeSlots: TimeSlot[];
   gender: "girls" | "boys";
-}> = ({ timeSlots, gender }) => {
+}
+
+const TimeTableGrid: React.FC<TimeTableGridProps> = ({ timeSlots, gender }) => {
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const groupedTimeSlots = groupTimeSlotsByDay(timeSlots);
 
